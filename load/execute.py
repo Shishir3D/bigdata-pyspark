@@ -4,8 +4,12 @@ import psycopg2
 from psycopg2 import sql
 from pyspark.sql import SparkSession
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from utility.utility import setup_logging
+
 
 def create_spark_session():
+    logger.debug("Initializing Spark Session with default parameters")
     return SparkSession.builder.appName("SpotifyDataLoad").getOrCreate()
 
 
@@ -114,6 +118,9 @@ def load_to_postgres(spark, input_dir, pg_un, pg_pw):
 
 
 if __name__ == "__main__":
+
+    logger = setup_logging("load.log")
+
     if len(sys.argv) != 4:
         print("Usage: python load/execute.py <input_dir> <pg_un> <pg_pw>")
         sys.exit(1)
