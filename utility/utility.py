@@ -1,5 +1,6 @@
 import logging
 
+
 def setup_logging(log_file_name):
     # Define the format for log messages
     logFormatter = logging.Formatter(
@@ -21,3 +22,9 @@ def setup_logging(log_file_name):
     rootLogger.addHandler(consoleHandler)
 
     return rootLogger
+
+
+def format_time(seconds):
+    hours, remainder = divmod(seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return f"{int(hours)} hours, {int(minutes)} minutes, {int(seconds)} seconds"
