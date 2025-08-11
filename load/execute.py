@@ -2,16 +2,25 @@ import time
 import sys
 import os
 import psycopg2
-from psycopg2 import sql
+from psycopg2 import sql  # type : ignore
 from pyspark.sql import SparkSession
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from utility.utility import setup_logging
 
 
-def create_spark_session(logger):
+def create_spark_session(spark_config):
+    """Initialize Spark session."""
     logger.debug("Initializing Spark Session with default parameters")
-    return SparkSession.builder.appName("SpotifyDataLoad").getOrCreate()
+    return (
+        SparkSession.builder.master(f"spark://{spark_config['master_ip']}:7077")
+        .appName("SpotifyDataLoad")
+        .config("spark.driver.memory", spark_config["driver_memory"])
+        .config("spark.executor.memory", spark_config["executor_memory"])
+        .config("spark.executor.cores", spark_config["executor_cores"])
+        .config("spark.executor.instances", spark_config["executor_instances"])
+        .getOrCreate()
+    )
 
 
 def create_postgres_tables(logger, pg_un, pg_pw):
@@ -122,8 +131,10 @@ if __name__ == "__main__":
 
     logger = setup_logging("load.log")
 
-    if len(sys.argv) != 4:
-        logger.error("Usage: python load/execute.py <input_dir> <pg_un> <pg_pw>")
+    if len(sys.argv) != 9:
+        logger.critical(
+            "Usage: python load/execute.py <input_dir> <pg_un> <pg_pw>  pg_host  d_mem e_mem e_core e_inst"
+        )
         sys.exit(1)
 
     logger.info("load stage started")
@@ -132,6 +143,12 @@ if __name__ == "__main__":
     input_dir = sys.argv[1]
     pg_un = sys.argv[2]
     pg_pw = sys.argv[3]
+    spark_config = {}
+    spark_config["master_ip"] = sys.argv[3]
+    spark_config["driver_memory"] = sys.argv[4]
+    spark_config["executor_memory"] = sys.argv[4]
+    spark_config["executor_cores"] = sys.argv[6]
+    spark_config["executor_instances"] = sys.argv[7]
 
     if not os.path.exists(input_dir):
         logger.error(f"Error: Input directory {input_dir} does not exist")

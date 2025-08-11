@@ -5,12 +5,15 @@ from pyspark.sql import types as T
 from pyspark.sql import functions as F
 
 
-def create_spark_session():
+def create_spark_session(spark_config):
     """Initialize Spark session."""
     return (
-        SparkSession.builder.appName("SpotifyDataTransform")
-        .config("spark.driver.memory", "2g")
-        .config("spark.executor.memory", "4g")
+        SparkSession.builder.master(f"spark://{spark_config['master_ip']}:7077")
+        .appName("SpotifyDataTransform")
+        .config("spark.driver.memory", spark_config["driver_memory"])
+        .config("spark.executor.memory", spark_config["executor_memory"])
+        .config("spark.executor.cores", spark_config["executor_cores"])
+        .config("spark.executor.instances", spark_config["executor_instances"])
         .getOrCreate()
     )
 
@@ -173,14 +176,22 @@ def create_query_tables(output_dir, artists_df, recommendations_df, tracks_df):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Usage: python script.py <input_dir> <output_dir>")
+    if len(sys.argv) != 8:
+        print(
+            "Usage: python script.py <input_dir> <output_dir> master_ip d_mem e_mem e_core e_inst"
+        )
         sys.exit(1)
 
     input_dir = sys.argv[1]
     output_dir = sys.argv[2]
+    spark_config = {}
+    spark_config["master_ip"] = sys.argv[3]
+    spark_config["driver_memory"] = sys.argv[4]
+    spark_config["executor_memory"] = sys.argv[4]
+    spark_config["executor_cores"] = sys.argv[6]
+    spark_config["executor_instances"] = sys.argv[7]
 
-    spark = create_spark_session()
+    spark = create_spark_session(spark_config)
 
     artists_df, recommendations_df, tracks_df = load_and_clean(
         spark, input_dir, output_dir

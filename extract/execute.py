@@ -1,8 +1,9 @@
 import os, sys, requests
 from zipfile import ZipFile
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from utility.utility import setup_logging
 
-
-def download_zip_file(url, output_dir):
+def download_zip_file(logger, url, output_dir):
     response = requests.get(url, stream=True)
     os.makedirs(output_dir, exist_ok=True)
 
@@ -12,23 +13,23 @@ def download_zip_file(url, output_dir):
             for chunk in response.iter_content(chunk_size=8192):
                 if chunk:
                     f.write(chunk)
-        print(f"Downloaded zip file: {filename}")
+        logger.info(f"Downloaded zip file: {filename}")
         return filename
     else:
         raise Exception(f"Failed to download file: Status code {response.status_code}")
 
 
-def extract_zip_file(zip_filename, output_dir):
+def extract_zip_file(logger, zip_filename, output_dir):
 
     with ZipFile(zip_filename, "r") as zip_file:
         zip_file.extractall(output_dir)
 
-    print(f"Extract files written to: {output_dir}")
-    print("Removing the zip file")
+    logger.info(f"Extract files written to: {output_dir}")
+    logger.info("Removing the zip file")
     os.remove(zip_filename)
 
 
-def fix_json_dict(output_dir):
+def fix_json_dict(logger, output_dir):
     import json
 
     file_path = os.path.join(output_dir, "dict_artists.json")
@@ -43,27 +44,29 @@ def fix_json_dict(output_dir):
             record = {"id": key, "related_ids": value}
             json.dump(record, f_out, ensure_ascii=False)
             f_out.write("\n")
-        print(
+        logger.info(
             f"File {file_path} has been fixed and written to {output_dir} as fixed_da.json"
         )
 
-    print("Removing the original file")
+    logger.info("Removing the original file")
     os.remove(file_path)
 
 
 if __name__ == "__main__":
+    logger = setup_logging("extract.log")
+
     if len(sys.argv) < 2:
-        print("Extraction path is required")
-        print("Exame Usage:")
-        print("python3 execute.py /home/Data/Extraction")
+        logger.info("Extraction path is required")
+        logger.info("Exame Usage:")
+        logger.info("python3 execute.py /home/Data/Extraction")
     else:
         try:
-            print("Starting Extration Engine...")
+            logger.info("Starting Extration Engine...")
             EXTRACT_PATH = sys.argv[1]
             KAGGLE_URL = "https://www.kaggle.com/api/v1/datasets/download/yamaerenay/spotify-dataset-19212020-600k-tracks"
-            zip_filename = download_zip_file(KAGGLE_URL, EXTRACT_PATH)
-            extract_zip_file(zip_filename, EXTRACT_PATH)
-            fix_json_dict(EXTRACT_PATH)
-            print("Extraction Successfully Completed!! :))")
+            zip_filename = download_zip_file(logger, KAGGLE_URL, EXTRACT_PATH)
+            extract_zip_file(logger, zip_filename, EXTRACT_PATH)
+            fix_json_dict(logger, EXTRACT_PATH)
+            logger.info("Extraction Successfully Completed!! :))")
         except Exception as e:
-            print(f"Error: {e}")
+            logger.error(f"Error: {e}")
